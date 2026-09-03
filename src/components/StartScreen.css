@@ -1,0 +1,151 @@
+/* Fonte pixelada - baixe "Press Start 2P" do Google Fonts e importe no seu index.html/App.css:
+   @import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap');
+   */
+
+@import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap');
+
+@import url('https://fonts.googleapis.com/css2?family=Pixelify+Sans:wght@400..700&display=swap');
+
+
+.start-screen {
+  position: relative;
+  width: 100%;
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 48px;
+  overflow: hidden;
+  font-family: 'Press Start 2P', monospace;
+}
+
+.start-screen__bg-placeholder {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  /* Placeholder: gradiente pastel. Troque por background-image quando tiver a arte */
+  background-image: url('../static/bg.png');
+  background-position: center; 
+  background-size:100vw 100vh;
+  background-repeat: no-repeat; 
+}
+
+.start-screen__titulo {
+  font-size: 56px;
+  color: #FF6B9D;
+  text-shadow: 6px 6px 0px #FFD6E8;
+  letter-spacing: 4px;
+  margin: 0;
+}
+
+.start-screen__subtitulo {
+  font-size: 24px;
+  color: #6B7A8F;
+  margin: 0;
+}
+
+.start-screen__pilotos {
+  display: flex;
+  gap: 48px;
+}
+
+.piloto-card {
+  --cor-tema: #FFB6C1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+  width: 320px;
+  padding: 32px;
+  background: #FFFFFF;
+  border: 8px solid var(--cor-tema);
+  border-radius: 32px;
+  cursor: pointer;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+  image-rendering: pixelated;
+}
+
+.piloto-card:hover {
+  transform: translateY(-8px) scale(1.03);
+  box-shadow: 0 12px 0 var(--cor-tema);
+}
+
+.piloto-card--selecionado {
+  background: var(--cor-tema);
+  transform: translateY(-8px) scale(1.05);
+  box-shadow: 0 12px 0 #FF6B9D;
+}
+
+.piloto-card__sprite {
+  width: 144px;
+  height: 144px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(255, 255, 255, 0.6);
+  border-radius: 24px;
+}
+
+.piloto-card__sprite img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  image-rendering: pixelated;
+}
+
+.piloto-card__sprite-placeholder {
+  font-size: 72px;
+}
+
+.piloto-card__nome {
+  font-size: 24px;
+  color: #4A4A6A;
+}
+
+.piloto-card__descricao {
+  font-size: 16px;
+  color: #7A7A9A;
+  text-align: center;
+  line-height: 1.5;
+}
+
+.start-screen__botao-jogar {
+  font-family: 'Press Start 2P', monospace;
+  font-size: 28px;
+  padding: 28px 64px;
+  background: #FF6B9D;
+  color: white;
+  border: none;
+  border-radius: 24px;
+  box-shadow: 0 8px 0 #D94F80;
+  cursor: pointer;
+  transition: transform 0.1s ease, box-shadow 0.1s ease;
+}
+
+.start-screen__botao-jogar:not(:disabled):hover {
+  transform: translateY(4px);
+  box-shadow: 0 4px 0 #D94F80;
+}
+
+.start-screen__botao-jogar:disabled {
+  background: #D8D8E0;
+  box-shadow: 0 8px 0 #B8B8C0;
+  cursor: not-allowed;
+  opacity: 0.7;
+}
+
+.letra-destaque {
+  font-family: 'Pixelify Sans', monospace;
+  font-weight: 700;
+    font-size: 1.90em;
+}
+
+.start-screen__conteudo {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 48px;
+  transform: scale(0.8);
+}

@@ -1,24 +1,42 @@
-import logo from './logo.svg';
-import './App.css';
+import { useState } from 'react';
+import StartScreen from './components/Startscreen';
+import SelecaoNiveis from './components/Selecaoniveis';
 
 function App() {
+  const [tela, setTela] = useState('inicio'); // 'inicio' | 'selecao'
+  const [piloto, setPiloto] = useState(null);
+  const [moedas, setMoedas] = useState(100);
+  const [itensComprados, setItensComprados] = useState([]);
+  const [nivelMaximo, setNivelMaximo] = useState(1);
+
+  const handleStart = (pilotoEscolhido) => {
+    setPiloto(pilotoEscolhido);
+    setTela('selecao');
+  };
+
+  const handleComprarItem = (item) => {
+    if (moedas >= item.preco) {
+      setMoedas(moedas - item.preco);
+      setItensComprados([...itensComprados, item.id]);
+    }
+  };
+
+  const handleSelecionarNivel = (nivelId) => {
+    console.log('Jogar nível', nivelId, 'com', piloto);
+    // aqui depois entra a tela do jogo em si
+  };
+
+  if (tela === 'inicio') return <StartScreen onStart={handleStart} />;
+
   return (
-    <div className="App">
-      <header className="App-header">
-        <img src={logo} className="App-logo" alt="logo" />
-        <p>
-          Edit <code>src/App.js</code> and save to reload.
-        </p>
-        <a
-          className="App-link"
-          href="https://reactjs.org"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          Learn React
-        </a>
-      </header>
-    </div>
+    <SelecaoNiveis
+      moedas={moedas}
+      nivelMaximoDesbloqueado={nivelMaximo}
+      itensComprados={itensComprados}
+      onSelecionarNivel={handleSelecionarNivel}
+      onComprarItem={handleComprarItem}
+      onVoltar={() => setTela('inicio')}
+    />
   );
 }
 
