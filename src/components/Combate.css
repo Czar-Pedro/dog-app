@@ -1,0 +1,153 @@
+@import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap');
+
+.combate {
+  width: 100%;
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  font-family: 'Press Start 2P', monospace;
+  background: #12122a;
+  color: white;
+  /* Calcula a maior largura possível que ainda cabe na tela,
+     considerando tanto a largura (92vw) quanto a altura (80vh convertida
+     em largura pela proporção do jogo) disponíveis, sem nunca passar de 720px. */
+  --jogo-largura: min(720px, 92vw, calc(80vh * 720 / 1020));
+}
+
+.combate__hud {
+  width: var(--jogo-largura);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.combate__botao-sair {
+  font-family: 'Press Start 2P', monospace;
+  font-size: 12px;
+  background: #FF6B9D;
+  color: white;
+  border: none;
+  border-radius: 12px;
+  padding: 10px 14px;
+  box-shadow: 0 4px 0 #D94F80;
+  cursor: pointer;
+}
+
+.combate__botao-sair:hover {
+  transform: translateY(2px);
+  box-shadow: 0 2px 0 #D94F80;
+}
+
+.combate__vidas {
+  display: flex;
+  gap: 4px;
+  font-size: 18px;
+}
+
+.combate__info {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  font-size: 11px;
+  gap: 4px;
+  color: #FFD37A;
+}
+
+.combate__barra-chefe {
+  width: var(--jogo-largura);
+  height: 16px;
+  background: #33335c;
+  border-radius: 8px;
+  overflow: hidden;
+  border: 2px solid #8B5CF6;
+}
+
+.combate__barra-chefe-preenchimento {
+  height: 100%;
+  background: linear-gradient(90deg, #FF6B6B, #FF9EC4);
+  transition: width 0.2s ease;
+}
+
+.combate__area-jogo {
+  position: relative;
+  width: var(--jogo-largura);
+  aspect-ratio: 720 / 1020;
+  border: 6px solid #FF6B9D;
+  border-radius: 16px;
+  box-shadow: 0 8px 0 #D94F80;
+  overflow: hidden;
+}
+
+.combate__canvas {
+  width: 100%;
+  height: 100%;
+  display: block;
+  image-rendering: pixelated;
+}
+
+.combate__overlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(18, 18, 42, 0.9);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  text-align: center;
+  padding: 24px;
+}
+
+.combate__overlay h2 {
+  font-size: 20px;
+  margin: 0;
+  color: #FFD37A;
+}
+
+.combate__overlay p {
+  font-size: 12px;
+  color: #AEE1FF;
+  margin: 0;
+}
+
+.combate__botao-principal {
+  font-family: 'Press Start 2P', monospace;
+  font-size: 14px;
+  padding: 16px 32px;
+  background: #FF6B9D;
+  color: white;
+  border: none;
+  border-radius: 16px;
+  box-shadow: 0 6px 0 #D94F80;
+  cursor: pointer;
+}
+
+.combate__botao-principal:hover {
+  transform: translateY(3px);
+  box-shadow: 0 3px 0 #D94F80;
+}
+
+.combate__botao-secundario {
+  font-family: 'Press Start 2P', monospace;
+  font-size: 12px;
+  padding: 14px 24px;
+  background: transparent;
+  color: #AEE1FF;
+  border: 2px solid #AEE1FF;
+  border-radius: 16px;
+  cursor: pointer;
+}
+
+.combate__botoes-derrota {
+  display: flex;
+  gap: 12px;
+}
+
+.combate__dica {
+  font-size: 10px;
+  color: #7A7A9A;
+}

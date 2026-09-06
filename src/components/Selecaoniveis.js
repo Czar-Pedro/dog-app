@@ -1,12 +1,6 @@
 import React, { useState } from 'react';
 import './Selecaoniveis.css';
 
-const NIVEIS = [
-  { id: 1, nome: 'Nível 1', descricao: 'Primeiros passos no espaço', dificuldade: 'Fácil' },
-  { id: 2, nome: 'Nível 2', descricao: 'A batalha esquenta', dificuldade: 'Médio' },
-  { id: 3, nome: 'Nível 3', descricao: 'Encontro com o chefão', dificuldade: 'Difícil' },
-];
-
 const ITENS_LOJA = [
   {
     id: 'escudo',
@@ -35,6 +29,7 @@ export default function SelecaoNiveis({
   moedas = 0,
   nivelMaximoDesbloqueado = 1,
   itensComprados = [],
+  niveis = [],
   onSelecionarNivel,
   onComprarItem,
   onVoltar,
@@ -72,7 +67,10 @@ export default function SelecaoNiveis({
 
       {aba === 'niveis' && (
         <div className="niveis-grid">
-          {NIVEIS.map((nivel) => {
+          {niveis.length === 0 && (
+            <p className="niveis-grid__carregando">Carregando níveis...</p>
+          )}
+          {niveis.map((nivel) => {
             const bloqueado = nivel.id > nivelMaximoDesbloqueado;
             return (
               <button
