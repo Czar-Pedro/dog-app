@@ -9,7 +9,7 @@
   justify-content: center;
   gap: 16px;
   font-family: 'Press Start 2P', monospace;
-  background: #12122a;
+  background: radial-gradient(ellipse at center, #241f4d 0%, #12122a 55%, #0a0a1a 100%);
   color: white;
   /* Calcula a maior largura possível que ainda cabe na tela,
      considerando tanto a largura (92vw) quanto a altura (80vh convertida

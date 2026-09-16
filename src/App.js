@@ -21,6 +21,9 @@ function App() {
   // Versão em mapa (por número do nível, camelCase) usada pelo Combate.js
   const [niveisApi, setNiveisApi] = useState({});
 
+  // Itens da loja vindos da API
+  const [itensLoja, setItensLoja] = useState([]);
+
   useEffect(() => {
     fetch(`${API_BASE_URL}/niveis/`)
       .then((res) => res.json())
@@ -35,15 +38,30 @@ function App() {
             abatesParaVencer: item.abates_para_vencer,
             temChefe: item.tem_chefe,
             chefeVida: item.chefe_vida,
+            chanceTanque: item.chance_tanque,
+            fundoChave: item.fundo_chave,
           };
         });
         setNiveisApi(mapa);
       })
       .catch((erro) => {
-        // Se a API não responder (backend desligado, por exemplo), o
-        // jogo continua funcionando com os valores padrão do Combate.js,
-        // mas a tela de seleção de níveis fica vazia até a API voltar.
         console.error('Não foi possível buscar os níveis da API:', erro);
+      });
+
+    fetch(`${API_BASE_URL}/itens/`)
+      .then((res) => res.json())
+      .then((dados) => {
+        const itensFormatados = dados.map((item) => ({
+          id: item.chave,
+          nome: item.nome,
+          descricao: item.descricao,
+          icone: item.icone,
+          preco: item.preco,
+        }));
+        setItensLoja(itensFormatados);
+      })
+      .catch((erro) => {
+        console.error('Não foi possível buscar os itens da API:', erro);
       });
   }, []);
 
@@ -103,6 +121,7 @@ function App() {
       nivelMaximoDesbloqueado={nivelMaximo}
       itensComprados={itensComprados}
       niveis={niveisParaSelecao}
+      itensLoja={itensLoja}
       onSelecionarNivel={handleSelecionarNivel}
       onComprarItem={handleComprarItem}
       onVoltar={() => setTela('inicio')}

@@ -2,16 +2,27 @@ import React, { useEffect, useRef, useState, useCallback } from 'react';
 import './Combate.css';
 import inimigo1Img from '../static/inimigo1.png';
 import tanqueImg from '../static/tank.png';
+import chefaoImg from '../static/chefao.png';
+import tiroInimigoImg from '../static/tiro_inimigo.png';
 import fundoImg from '../static/bgcombate.jpeg';
+import fundoNoiteImg from '../static/bgcombatenoite.png';
 
 import aviaoSolImg from '../static/aviaoSol.png';
 import aviaoLunaImg from '../static/aviaoLuna.png';
 
+// Fundos disponíveis. A chave (ex: 'padrao', 'noite') é escolhida por nível
+// no admin do Django (campo fundo_chave) — se vier uma chave desconhecida,
+// cai no 'padrao'.
+const FUNDOS_POR_CHAVE = {
+  padrao: fundoImg,
+  noite: fundoNoiteImg,
+};
+
 // Configuração de dificuldade por nível
 const CONFIG_NIVEL = {
-  1: { spawnIntervalBase: 1300, enemySpeedBase: 90, abatesParaVencer: 15, temChefe: false, chefeVida: 0 },
-  2: { spawnIntervalBase: 1000, enemySpeedBase: 120, abatesParaVencer: 20, temChefe: false, chefeVida: 0 },
-  3: { spawnIntervalBase: 850, enemySpeedBase: 140, abatesParaVencer: 12, temChefe: true, chefeVida: 26 },
+  1: { spawnIntervalBase: 1300, enemySpeedBase: 90, abatesParaVencer: 15, temChefe: false, chefeVida: 0, chanceTanque: 0, fundoChave: 'padrao' },
+  2: { spawnIntervalBase: 1000, enemySpeedBase: 120, abatesParaVencer: 20, temChefe: false, chefeVida: 0, chanceTanque: 0.25, fundoChave: 'padrao' },
+  3: { spawnIntervalBase: 850, enemySpeedBase: 140, abatesParaVencer: 12, temChefe: true, chefeVida: 26, chanceTanque: 0.35, fundoChave: 'noite' },
 };
 
 const SPRITES_COMBATE_POR_PILOTO = {
@@ -37,13 +48,19 @@ const BALA_VELOCIDADE = Math.round(420 * ESCALA);
 const BALA_COOLDOWN = 260;
 const SPRITES_INIMIGO = [inimigo1Img];
 
+// Deixa a IMAGEM do tiro inimigo maior que a hitbox real dele — a hitbox
+// (usada pra colisão) continua do tamanho original, só o desenho fica maior.
+// Pra ajustar o tamanho visual, mude só esse número (1 = tamanho real da hitbox).
+const TIRO_INIMIGO_ESCALA_VISUAL = 4;
+
 export default function Combate({ piloto, nivelId, itensComprados = [], niveisApi = {}, onVitoria, onDerrota, onSair }) {
   const canvasRef = useRef(null);
   const imgPilotoRef = useRef(null);
   const imgsInimigoRef = useRef([]);
   const imgTanqueRef = useRef(null);
   const imgChefeRef = useRef(null);
-  const imgFundoRotacionadoRef = useRef(null);
+  const imgTiroInimigoRef = useRef(null);
+  const imgFundoRef = useRef(null);
 
   // Estado mutável do jogo (não causa re-render a cada frame)
   const gameRef = useRef(null);
@@ -115,23 +132,42 @@ export default function Combate({ piloto, nivelId, itensComprados = [], niveisAp
     tanque.src = tanqueImg;
     imgTanqueRef.current = tanque;
 
-    // Sem imagem de chefe ainda — fica no placeholder (retângulo roxo) até você adicionar o arquivo
+    const chefao = new Image();
+    chefao.src = chefaoImg;
+    imgChefeRef.current = chefao;
 
-    // Gira a imagem de fundo (horizontal) 90° e desenha num canvas offscreen,
-    // que passa a ser usado no lugar da imagem original ao desenhar/rolar o fundo.
+    const tiroInimigo = new Image();
+    tiroInimigo.src = tiroInimigoImg;
+    imgTiroInimigoRef.current = tiroInimigo;
+  }, []);
+
+  // Carrega o fundo certo pra esse nível (escolhido no admin via fundo_chave).
+  // Fica num efeito à parte, porque a config do nível pode só chegar depois
+  // que a API responde — quando fundoChave mudar, recarrega o fundo certo.
+  useEffect(() => {
+    const chave = config.fundoChave || 'padrao';
+    const fundoSrc = FUNDOS_POR_CHAVE[chave] || FUNDOS_POR_CHAVE.padrao;
+
+    // Detecta sozinho se a imagem está deitada (largura > altura) e só
+    // gira nesse caso — assim funciona com imagem vertical ou horizontal,
+    // sem precisar mexer no código toda vez que o arquivo mudar.
     const fundo = new Image();
     fundo.onload = () => {
-      const canvasRot = document.createElement('canvas');
-      canvasRot.width = fundo.height;  // após girar, a largura vira a altura original
-      canvasRot.height = fundo.width;  // e a altura vira a largura original
-      const ctxRot = canvasRot.getContext('2d');
-      ctxRot.translate(canvasRot.width / 2, canvasRot.height / 2);
-      ctxRot.rotate(Math.PI / 2); // 90° no sentido horário
-      ctxRot.drawImage(fundo, -fundo.width / 2, -fundo.height / 2);
-      imgFundoRotacionadoRef.current = canvasRot;
+      if (fundo.naturalWidth > fundo.naturalHeight) {
+        const canvasRot = document.createElement('canvas');
+        canvasRot.width = fundo.naturalHeight;
+        canvasRot.height = fundo.naturalWidth;
+        const ctxRot = canvasRot.getContext('2d');
+        ctxRot.translate(canvasRot.width / 2, canvasRot.height / 2);
+        ctxRot.rotate(Math.PI / 2);
+        ctxRot.drawImage(fundo, -fundo.naturalWidth / 2, -fundo.naturalHeight / 2);
+        imgFundoRef.current = canvasRot;
+      } else {
+        imgFundoRef.current = fundo;
+      }
     };
-    fundo.src = fundoImg;
-  }, []);
+    fundo.src = fundoSrc;
+  }, [config.fundoChave]);
 
   // Controles de teclado
   useEffect(() => {
@@ -225,15 +261,21 @@ export default function Combate({ piloto, nivelId, itensComprados = [], niveisAp
       g.balas = g.balas.filter((b) => b.y > -20);
       g.balas.forEach((b) => { b.y -= BALA_VELOCIDADE * dt; });
 
-      // Atualiza balas do chefe
-      g.balasInimigo = g.balasInimigo.filter((b) => b.y < ALTURA + 20);
-      g.balasInimigo.forEach((b) => { b.y += b.vel * dt; b.x += (b.vx || 0) * dt; });
+      // Atualiza balas do chefe (agora se movem em qualquer direção, por isso
+      // o filtro descarta em todas as bordas, não só quando passa embaixo)
+      g.balasInimigo = g.balasInimigo.filter(
+        (b) => b.y > -20 && b.y < ALTURA + 20 && b.x > -20 && b.x < LARGURA + 20
+      );
+      g.balasInimigo.forEach((b) => {
+        b.y += (b.vy || 0) * dt;
+        b.x += (b.vx || 0) * dt;
+      });
 
       // Spawn de inimigos comuns (pausa spawn se o chefe estiver ativo)
       const spawnInterval = Math.max(400, config.spawnIntervalBase - g.abates * 15);
       if (!g.chefe && g.tempo - g.ultimoSpawn > spawnInterval) {
         g.ultimoSpawn = g.tempo;
-        const ehTanque = nivelId >= 2 && Math.random() < 0.25;
+        const ehTanque = Math.random() < (config.chanceTanque ?? 0);
         const inimigoTam = Math.round((ehTanque ? 46 : 36) * ESCALA * FATOR_INIMIGO);
         g.inimigos.push({
           x: Math.random() * (LARGURA - inimigoTam),
@@ -265,6 +307,7 @@ export default function Combate({ piloto, nivelId, itensComprados = [], niveisAp
           hpMax: config.chefeVida,
           dir: 1,
           ultimoTiro: g.tempo,
+          anelAlternado: false,
         };
         setChefe({ vida: g.chefe.hp, vidaMax: g.chefe.hpMax });
       }
@@ -290,13 +333,26 @@ export default function Combate({ piloto, nivelId, itensComprados = [], niveisAp
         c.x += c.dir * Math.round(70 * ESCALA) * dt;
         if (c.x < limiteBorda) c.dir = 1;
         if (c.x + c.w > LARGURA - limiteBorda) c.dir = -1;
-        if (g.tempo - c.ultimoTiro > 900) {
+        if (g.tempo - c.ultimoTiro > 1500) {
           c.ultimoTiro = g.tempo;
-          const balaChefeW = Math.round(8 * ESCALA);
-          const balaChefeH = Math.round(16 * ESCALA);
-          g.balasInimigo.push({ x: c.x + c.w / 2 - Math.round(4 * ESCALA), y: c.y + c.h, w: balaChefeW, h: balaChefeH, vel: Math.round(220 * ESCALA), vx: 0 });
-          g.balasInimigo.push({ x: c.x + Math.round(16 * ESCALA), y: c.y + c.h, w: balaChefeW, h: balaChefeH, vel: Math.round(200 * ESCALA), vx: Math.round(-40 * ESCALA) });
-          g.balasInimigo.push({ x: c.x + c.w - Math.round(16 * ESCALA), y: c.y + c.h, w: balaChefeW, h: balaChefeH, vel: Math.round(200 * ESCALA), vx: Math.round(40 * ESCALA) });
+          const numBalasAnel = 8;
+          const velBalaAnel = Math.round(150 * ESCALA);
+          const balaChefeTam = Math.round(10 * ESCALA);
+          c.anelAlternado = !c.anelAlternado;
+          const offsetAngulo = c.anelAlternado ? Math.PI / numBalasAnel : 0;
+          const centroX = c.x + c.w / 2;
+          const centroY = c.y + c.h / 2;
+          for (let i = 0; i < numBalasAnel; i++) {
+            const angulo = (Math.PI * 2 * i) / numBalasAnel + offsetAngulo;
+            g.balasInimigo.push({
+              x: centroX - balaChefeTam / 2,
+              y: centroY - balaChefeTam / 2,
+              w: balaChefeTam,
+              h: balaChefeTam,
+              vx: Math.cos(angulo) * velBalaAnel,
+              vy: Math.sin(angulo) * velBalaAnel,
+            });
+          }
         }
       }
 
@@ -323,7 +379,7 @@ export default function Combate({ piloto, nivelId, itensComprados = [], niveisAp
       // Colisão: balas do player x chefe
       if (g.chefe) {
         g.balas.forEach((b) => {
-          if (!b.atingiu && colide(b, g.chefe)) {
+          if (!b.atingiu && g.chefe && colide(b, g.chefe)) {
             b.atingiu = true;
             g.chefe.hp -= 1;
             setChefe({ vida: g.chefe.hp, vidaMax: g.chefe.hpMax });
@@ -369,11 +425,11 @@ export default function Combate({ piloto, nivelId, itensComprados = [], niveisAp
 
     const desenhar = (ctx, g) => {
       // Fundo (já rotacionado 90°) com scroll vertical contínuo
-      if (imgFundoRotacionadoRef.current) {
+      if (imgFundoRef.current) {
         const vel = 60; // px/s — ajuste a velocidade do scroll aqui
         const offset = ((g ? g.tempo : 0) * (vel / 1000)) % ALTURA;
-        ctx.drawImage(imgFundoRotacionadoRef.current, 0, offset - ALTURA, LARGURA, ALTURA);
-        ctx.drawImage(imgFundoRotacionadoRef.current, 0, offset, LARGURA, ALTURA);
+        ctx.drawImage(imgFundoRef.current, 0, offset - ALTURA, LARGURA, ALTURA);
+        ctx.drawImage(imgFundoRef.current, 0, offset, LARGURA, ALTURA);
       } else {
         ctx.fillStyle = '#1a1a3a';
         ctx.fillRect(0, 0, LARGURA, ALTURA);
@@ -406,9 +462,18 @@ export default function Combate({ piloto, nivelId, itensComprados = [], niveisAp
       ctx.fillStyle = '#FFD37A';
       g.balas.forEach((b) => ctx.fillRect(b.x, b.y, b.w, b.h));
 
-      // Balas inimigas
-      ctx.fillStyle = '#FF6B6B';
-      g.balasInimigo.forEach((b) => ctx.fillRect(b.x, b.y, b.w, b.h));
+      // Balas inimigas — desenhadas maiores que a hitbox real (ver
+      // TIRO_INIMIGO_ESCALA_VISUAL), mas centralizadas nela
+      g.balasInimigo.forEach((b) => {
+        if (imgTiroInimigoRef.current && imgTiroInimigoRef.current.complete) {
+          const tamVisual = b.w * TIRO_INIMIGO_ESCALA_VISUAL;
+          const offset = (tamVisual - b.w) / 2;
+          ctx.drawImage(imgTiroInimigoRef.current, b.x - offset, b.y - offset, tamVisual, tamVisual);
+        } else {
+          ctx.fillStyle = '#FF6B6B';
+          ctx.fillRect(b.x, b.y, b.w, b.h);
+        }
+      });
 
       // Inimigos comuns (spriteIndex -1 = tanque, senão = inimigo1)
       g.inimigos.forEach((e) => {
