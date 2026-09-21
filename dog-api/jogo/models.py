@@ -30,7 +30,6 @@ class Nivel(models.Model):
         ('padrao', 'Padrão'),
         ('noite', 'Noite'),
     ]
-
     fundo_chave = models.CharField(
         max_length=50,
         choices=FUNDO_CHOICES,
