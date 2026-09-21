@@ -39,6 +39,7 @@ function App() {
             temChefe: item.tem_chefe,
             chefeVida: item.chefe_vida,
             chanceTanque: item.chance_tanque,
+            chanceRapido: item.chance_rapido,
             fundoChave: item.fundo_chave,
           };
         });
