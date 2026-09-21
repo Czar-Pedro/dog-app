@@ -1,40 +1,12 @@
 import React, { useState } from 'react';
 import './Selecaoniveis.css';
 
-const NIVEIS = [
-  { id: 1, nome: 'Nível 1', descricao: 'Primeiros passos no espaço', dificuldade: 'Fácil' },
-  { id: 2, nome: 'Nível 2', descricao: 'A batalha esquenta', dificuldade: 'Médio' },
-  { id: 3, nome: 'Nível 3', descricao: 'Encontro com o chefão', dificuldade: 'Difícil' },
-];
-
-const ITENS_LOJA = [
-  {
-    id: 'escudo',
-    nome: 'Escudo',
-    descricao: 'Bloqueia 1 hit de dano',
-    icone: '🛡️',
-    preco: 50,
-  },
-  {
-    id: 'vida_extra',
-    nome: 'Vida Extra',
-    descricao: '+1 vida no início do nível',
-    icone: '❤️',
-    preco: 80,
-  },
-  {
-    id: 'tiro_duplo',
-    nome: 'Tiro Duplo',
-    descricao: 'Atira 2 projéteis por vez',
-    icone: '💥',
-    preco: 120,
-  },
-];
-
 export default function SelecaoNiveis({
   moedas = 0,
   nivelMaximoDesbloqueado = 1,
   itensComprados = [],
+  niveis = [],
+  itensLoja = [],
   onSelecionarNivel,
   onComprarItem,
   onVoltar,
@@ -51,7 +23,7 @@ export default function SelecaoNiveis({
         {onVoltar && (
           <button className="botao-voltar" onClick={onVoltar}>◀</button>
         )}
-        <h1 className="selecao-niveis__titulo">Cosmic Pups</h1>
+        <h1 className="selecao-niveis__titulo">DOGSKY</h1>
         <div className="selecao-niveis__moedas">🦴 {moedas}</div>
       </div>
 
@@ -72,7 +44,10 @@ export default function SelecaoNiveis({
 
       {aba === 'niveis' && (
         <div className="niveis-grid">
-          {NIVEIS.map((nivel) => {
+          {niveis.length === 0 && (
+            <p className="niveis-grid__carregando">Carregando níveis...</p>
+          )}
+          {niveis.map((nivel) => {
             const bloqueado = nivel.id > nivelMaximoDesbloqueado;
             return (
               <button
@@ -93,7 +68,10 @@ export default function SelecaoNiveis({
 
       {aba === 'loja' && (
         <div className="loja-grid">
-          {ITENS_LOJA.map((item) => {
+          {itensLoja.length === 0 && (
+            <p className="niveis-grid__carregando">Carregando itens...</p>
+          )}
+          {itensLoja.map((item) => {
             const comprado = jaTemItem(item.id);
             const podeComprar = moedas >= item.preco && !comprado;
             return (

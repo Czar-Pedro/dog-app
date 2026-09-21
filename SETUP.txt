@@ -1,0 +1,94 @@
+========================================
+ DOGSKY - COMANDOS PARA RODAR EM OUTRO PC
+========================================
+
+Pré-requisitos que precisam estar instalados na máquina nova:
+- Git
+- Node.js (com npm)
+- Python 3 (o mesmo usado no projeto original)
+
+----------------------------------------
+1. CLONAR O REPOSITÓRIO
+----------------------------------------
+git clone <URL_DO_SEU_REPOSITORIO_NO_GITHUB>
+cd dog-app
+
+----------------------------------------
+2. FRONTEND (React - dog-app)
+----------------------------------------
+npm install
+
+(isso reinstala tudo que estava em node_modules, que não vai pro Git)
+
+----------------------------------------
+3. BACKEND (Django - dog-api)
+----------------------------------------
+cd dog-api
+
+python -m venv venv
+
+# Ativar o ambiente virtual:
+# No Windows (PowerShell):
+.\venv\Scripts\Activate.ps1
+# No Mac/Linux:
+source venv/bin/activate
+
+# Instalar as dependências:
+pip install django djangorestframework
+
+(se você tiver um arquivo requirements.txt no projeto, use no lugar:
+pip install -r requirements.txt)
+
+----------------------------------------
+4. ARQUIVO .env
+----------------------------------------
+O .env NÃO vai para o Git (está no .gitignore de propósito, por segurança).
+Você precisa criar esse arquivo manualmente dentro de dog-api, com o mesmo
+conteúdo do .env da sua máquina atual (copie os valores manualmente,
+por exemplo via um gerenciador de senhas ou anotação seguro - nunca
+mande o .env por e-mail/chat sem criptografia).
+
+----------------------------------------
+5. BANCO DE DADOS
+----------------------------------------
+python manage.py migrate
+
+(isso recria o banco local - db.sqlite3 também não vai pro Git)
+
+Se quiser acessar o admin do Django, crie um usuário:
+python manage.py createsuperuser
+
+----------------------------------------
+6. RODAR O BACKEND
+----------------------------------------
+python manage.py runserver
+
+(deixa esse terminal aberto - a API vai ficar em http://127.0.0.1:8000/)
+
+----------------------------------------
+7. RODAR O FRONTEND (em outro terminal)
+----------------------------------------
+cd dog-app
+npm start
+
+(abre automaticamente em http://localhost:3000/)
+
+----------------------------------------
+8. CADASTRAR OS DADOS DO JOGO
+----------------------------------------
+Como o banco é recriado do zero (migrate só cria as tabelas vazias),
+entre no admin (http://127.0.0.1:8000/admin/) e cadastre de novo:
+- Os níveis (Nivel), com número, dificuldade, chance_tanque, fundo_chave etc.
+- Os itens da loja (Item)
+
+========================================
+RESUMO RÁPIDO (depois de já ter feito tudo acima uma vez):
+========================================
+Terminal 1:
+cd dog-app\dog-api
+.\venv\Scripts\Activate.ps1
+python manage.py runserver
+
+Terminal 2:
+cd dog-app
+npm start

@@ -21,3 +21,10 @@
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
+
+# Backend Django
+dog-api/venv/
+dog-api/**/__pycache__/
+dog-api/**/*.pyc
+dog-api/.env
+dog-api/db.sqlite3
