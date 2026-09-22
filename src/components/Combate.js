@@ -11,6 +11,8 @@ import fundoNoiteImg from '../static/bgcombatenoite.png';
 import aviaoSolImg from '../static/aviaoSol.png';
 import aviaoLunaImg from '../static/aviaoLuna.png';
 
+import { calcularEfeitosItens } from '../data/itemEffects';
+
 // Fundos disponíveis. A chave (ex: 'padrao', 'noite') é escolhida por nível
 // no admin do Django (campo fundo_chave) — se vier uma chave desconhecida,
 // cai no 'padrao'.
@@ -48,7 +50,7 @@ const ALTURA = Math.round(680 * ESCALA);
 const PLAYER_TAMANHO = Math.round(48 * ESCALA * FATOR_JOGADOR);
 const PLAYER_VELOCIDADE = Math.round(260 * ESCALA);
 const BALA_VELOCIDADE = Math.round(420 * ESCALA);
-const BALA_COOLDOWN = 260;
+const BALA_COOLDOWN = 320;
 const SPRITES_INIMIGO = [inimigo1Img];
 
 // Deixa a IMAGEM do tiro inimigo maior que a hitbox real dele — a hitbox
@@ -75,14 +77,15 @@ export default function Combate({ piloto, nivelId, itensComprados = [], niveisAp
   const [moedasRodada, setMoedasRodada] = useState(0);
   const [fase, setFase] = useState('jogando'); // 'jogando' | 'vitoria' | 'derrota'
   const [chefe, setChefe] = useState(null); // { vida, vidaMax } | null
-  const [escudoAtivo, setEscudoAtivo] = useState(itensComprados.includes('escudo'));
+  const [escudoCargas, setEscudoCargas] = useState(0);
 
   // Prioriza o nível vindo da API do Django; se ainda não chegou
   // (ou a API estiver fora do ar), usa os valores fixos como plano B.
   const config = niveisApi[nivelId] || CONFIG_NIVEL[nivelId] || CONFIG_NIVEL[1];
 
   const inicializarJogo = useCallback(() => {
-    const vidaBase = 3 + (itensComprados.includes('vida_extra') ? 1 : 0);
+    const efeitos = calcularEfeitosItens(itensComprados);
+    const vidaBase = 3 + efeitos.vidaExtra;
     gameRef.current = {
       player: { x: LARGURA / 2 - PLAYER_TAMANHO / 2, y: ALTURA - PLAYER_TAMANHO - Math.round(24 * ESCALA), w: PLAYER_TAMANHO, h: PLAYER_TAMANHO },
       teclas: {},
@@ -97,8 +100,11 @@ export default function Combate({ piloto, nivelId, itensComprados = [], niveisAp
       abates: 0,
       vidas: vidaBase,
       moedas: 0,
-      escudo: itensComprados.includes('escudo'),
-      tiroDuplo: itensComprados.includes('tiro_duplo'),
+      efeitos,
+      escudoCargas: efeitos.escudoCargas,
+      escudoCargasMax: efeitos.escudoCargas,
+      escudoRegenRestantes: efeitos.escudoRegenVezes,
+      revivesRestantes: efeitos.revives,
       spawnChefeFeito: false,
       terminou: false,
     };
@@ -106,7 +112,7 @@ export default function Combate({ piloto, nivelId, itensComprados = [], niveisAp
     setAbates(0);
     setMoedasRodada(0);
     setChefe(null);
-    setEscudoAtivo(itensComprados.includes('escudo'));
+    setEscudoCargas(efeitos.escudoCargas);
     setFase('jogando');
   }, [itensComprados]);
 
@@ -197,17 +203,31 @@ export default function Combate({ piloto, nivelId, itensComprados = [], niveisAp
   }, []);
 
   const tomarDano = useCallback((g) => {
-    if (g.escudo) {
-      g.escudo = false;
-      setEscudoAtivo(false);
+    if (g.escudoCargas > 0) {
+      g.escudoCargas -= 1;
+      if (g.escudoCargas === 0 && g.escudoRegenRestantes > 0) {
+        g.escudoRegenRestantes -= 1;
+        g.escudoCargas = g.escudoCargasMax || 1;
+      }
+      setEscudoCargas(g.escudoCargas);
       return;
     }
     g.vidas -= 1;
-    setVidas(g.vidas);
-    if (g.vidas <= 0 && !g.terminou) {
-      g.terminou = true;
-      setFase('derrota');
+    if (g.vidas <= 0) {
+      if (g.revivesRestantes > 0) {
+        g.revivesRestantes -= 1;
+        g.vidas = 1;
+        setVidas(1);
+        return;
+      }
+      setVidas(0);
+      if (!g.terminou) {
+        g.terminou = true;
+        setFase('derrota');
+      }
+      return;
     }
+    setVidas(g.vidas);
   }, []);
 
   // Loop principal do jogo
@@ -241,8 +261,9 @@ export default function Combate({ piloto, nivelId, itensComprados = [], niveisAp
       if (t['w'] || t['arrowup']) dy -= 1;
       if (t['s'] || t['arrowdown']) dy += 1;
       if (dx !== 0 && dy !== 0) { dx *= 0.7071; dy *= 0.7071; }
-      g.player.x = Math.max(0, Math.min(LARGURA - g.player.w, g.player.x + dx * PLAYER_VELOCIDADE * dt));
-      g.player.y = Math.max(0, Math.min(ALTURA - g.player.h, g.player.y + dy * PLAYER_VELOCIDADE * dt));
+      const velocidadeEfetiva = PLAYER_VELOCIDADE * (g.efeitos.velocidadeMultiplicador ?? 1);
+      g.player.x = Math.max(0, Math.min(LARGURA - g.player.w, g.player.x + dx * velocidadeEfetiva * dt));
+      g.player.y = Math.max(0, Math.min(ALTURA - g.player.h, g.player.y + dy * velocidadeEfetiva * dt));
 
       // Tiro do player — só dispara no momento em que a tecla é apertada
       // (borda de subida), nunca enquanto ela fica segurada. Isso impede
@@ -251,18 +272,24 @@ export default function Combate({ piloto, nivelId, itensComprados = [], niveisAp
       const apertouAgora = espacoApertadoAgora && !g.espacoApertadoAntes;
       g.espacoApertadoAntes = espacoApertadoAgora;
 
-      if (apertouAgora && agora - g.ultimoTiro > BALA_COOLDOWN) {
+      const cooldownEfetivo = BALA_COOLDOWN * (g.efeitos.cooldownMultiplicador ?? 1);
+      if (apertouAgora && agora - g.ultimoTiro > cooldownEfetivo) {
         g.ultimoTiro = agora;
         const cx = g.player.x + g.player.w / 2;
         const cy = g.player.y;
         const balaW = Math.round(6 * ESCALA);
         const balaH = Math.round(14 * ESCALA);
-        if (g.tiroDuplo) {
-          g.balas.push({ x: cx - Math.round(14 * ESCALA), y: cy, w: balaW, h: balaH });
-          g.balas.push({ x: cx + Math.round(8 * ESCALA), y: cy, w: balaW, h: balaH });
-        } else {
-          g.balas.push({ x: cx - Math.round(3 * ESCALA), y: cy, w: balaW, h: balaH });
-        }
+        const espacamento = Math.round(16 * ESCALA);
+        const OFFSETS_POR_NIVEL = {
+          1: [0],
+          2: [-espacamento / 2, espacamento / 2],
+          3: [-espacamento, 0, espacamento],
+          4: [-espacamento * 1.5, -espacamento / 2, espacamento / 2, espacamento * 1.5],
+        };
+        const offsets = OFFSETS_POR_NIVEL[g.efeitos.nivelTiro] || OFFSETS_POR_NIVEL[1];
+        offsets.forEach((offsetX) => {
+          g.balas.push({ x: cx - balaW / 2 + offsetX, y: cy, w: balaW, h: balaH });
+        });
       }
 
       // Atualiza balas do player
@@ -319,8 +346,8 @@ export default function Combate({ piloto, nivelId, itensComprados = [], niveisAp
       if (config.temChefe && !g.spawnChefeFeito && g.abates >= config.abatesParaVencer) {
         g.spawnChefeFeito = true;
         g.inimigos = [];
-        const chefeW = Math.round(120 * ESCALA * FATOR_INIMIGO);
-        const chefeH = Math.round(90 * ESCALA * FATOR_INIMIGO);
+        const chefeW = Math.round(96 * ESCALA * FATOR_INIMIGO);
+        const chefeH = Math.round(72 * ESCALA * FATOR_INIMIGO);
         g.chefe = {
           x: LARGURA / 2 - chefeW / 2,
           y: Math.round(40 * ESCALA),
@@ -353,7 +380,7 @@ export default function Combate({ piloto, nivelId, itensComprados = [], niveisAp
       if (g.chefe) {
         const c = g.chefe;
         const limiteBorda = Math.round(20 * ESCALA);
-        c.x += c.dir * Math.round(70 * ESCALA) * dt;
+        c.x += c.dir * Math.round(95 * ESCALA) * dt;
         if (c.x < limiteBorda) c.dir = 1;
         if (c.x + c.w > LARGURA - limiteBorda) c.dir = -1;
         if (g.tempo - c.ultimoTiro > 1500) {
@@ -389,7 +416,7 @@ export default function Combate({ piloto, nivelId, itensComprados = [], niveisAp
               e.morto = true;
               g.abates += 1;
               const MOEDAS_POR_TIPO = { tanque: 6, rapido: 4, comum: 3 };
-              const moedasGanhas = MOEDAS_POR_TIPO[e.tipo] ?? 3;
+              const moedasGanhas = Math.round((MOEDAS_POR_TIPO[e.tipo] ?? 3) * (g.efeitos.multiplicadorMoedas ?? 1));
               g.moedas += moedasGanhas;
               setAbates(g.abates);
               setMoedasRodada(g.moedas);
@@ -408,7 +435,7 @@ export default function Combate({ piloto, nivelId, itensComprados = [], niveisAp
             g.chefe.hp -= 1;
             setChefe({ vida: g.chefe.hp, vidaMax: g.chefe.hpMax });
             if (g.chefe.hp <= 0) {
-              g.moedas += 80;
+              g.moedas += 80 + (g.efeitos.bonusMoedas ?? 0);
               setMoedasRodada(g.moedas);
               g.chefe = null;
               setChefe(null);
@@ -443,6 +470,8 @@ export default function Combate({ piloto, nivelId, itensComprados = [], niveisAp
       // Vitória sem chefe: atingiu meta de abates
       if (!config.temChefe && g.abates >= config.abatesParaVencer && !g.terminou) {
         g.terminou = true;
+        g.moedas += g.efeitos.bonusMoedas ?? 0;
+        setMoedasRodada(g.moedas);
         setFase('vitoria');
       }
     };
@@ -474,7 +503,7 @@ export default function Combate({ piloto, nivelId, itensComprados = [], niveisAp
         ctx.fillStyle = '#FF6B9D';
         ctx.fillRect(p.x, p.y, p.w, p.h);
       }
-      if (g.escudo) {
+      if (g.escudoCargas > 0) {
         ctx.strokeStyle = '#AEE1FF';
         ctx.lineWidth = 3;
         ctx.beginPath();
@@ -548,7 +577,7 @@ export default function Combate({ piloto, nivelId, itensComprados = [], niveisAp
           {Array.from({ length: vidas }).map((_, i) => (
             <span key={i}>❤️</span>
           ))}
-          {escudoAtivo && <span title="Escudo ativo">🛡️</span>}
+          {escudoCargas > 0 && <span title={`Escudo (${escudoCargas} carga${escudoCargas > 1 ? 's' : ''})`}>🛡️×{escudoCargas}</span>}
         </div>
         <div className="combate__info">
           <span>🦴 {moedasRodada}</span>

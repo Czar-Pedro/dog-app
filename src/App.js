@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import StartScreen from './components/Startscreen';
 import SelecaoNiveis from './components/Selecaoniveis';
 import Combate from './components/Combate';
+import ITENS_LOJA from './data/itens';
 
 // Endereço da API do backend Django. Depois, quando for hospedar de
 // verdade, troque isso por uma variável de ambiente.
@@ -20,9 +21,6 @@ function App() {
 
   // Versão em mapa (por número do nível, camelCase) usada pelo Combate.js
   const [niveisApi, setNiveisApi] = useState({});
-
-  // Itens da loja vindos da API
-  const [itensLoja, setItensLoja] = useState([]);
 
   useEffect(() => {
     fetch(`${API_BASE_URL}/niveis/`)
@@ -47,22 +45,6 @@ function App() {
       })
       .catch((erro) => {
         console.error('Não foi possível buscar os níveis da API:', erro);
-      });
-
-    fetch(`${API_BASE_URL}/itens/`)
-      .then((res) => res.json())
-      .then((dados) => {
-        const itensFormatados = dados.map((item) => ({
-          id: item.chave,
-          nome: item.nome,
-          descricao: item.descricao,
-          icone: item.icone,
-          preco: item.preco,
-        }));
-        setItensLoja(itensFormatados);
-      })
-      .catch((erro) => {
-        console.error('Não foi possível buscar os itens da API:', erro);
       });
   }, []);
 
@@ -122,7 +104,7 @@ function App() {
       nivelMaximoDesbloqueado={nivelMaximo}
       itensComprados={itensComprados}
       niveis={niveisParaSelecao}
-      itensLoja={itensLoja}
+      itensLoja={ITENS_LOJA.filter((item) => item.nivelMinimo <= nivelMaximo)}
       onSelecionarNivel={handleSelecionarNivel}
       onComprarItem={handleComprarItem}
       onVoltar={() => setTela('inicio')}
